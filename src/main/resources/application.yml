@@ -3,10 +3,9 @@ jwt:
   headerKey: Authorization
   #jwt请求部前缀——与前端一致
   headerPrefix: Bearer
-  #过期时间
-  expirationTime: 20000
-#  expirationTime: 300000
-  #刷新token过期时间
+  #过期时间——半小时
+  expirationTime: 300000
+  #刷新token过期时间——一天时间
   refreshTokenTime: 14400000
   #密钥——上线时需要更改随机数字
   secretKey: secret
@@ -14,4 +13,3 @@ jwt:
   noVerifPath:
     - /login
     - /refresh
-    - /otherPath

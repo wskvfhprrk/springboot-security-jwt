@@ -63,6 +63,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             //检测是以Bearer 开头——可以配置
             if (authorization != null && authorization.startsWith(jwtProperties.getHeaderPrefix())) {
                 jwt = authorization.replace(jwtProperties.getHeaderPrefix(), "");
+                //todo 检查一下token是否存在，不存在报401错误
                 username = jwtUtil.extractUsername(jwt);
             }
             //如果username不为空值，但上下文会话的身份验证为空时会被security访问请求拒绝——需要把权限添加进上下文会话管理中
@@ -99,11 +100,13 @@ public class JwtRequestFilter extends OncePerRequestFilter {
                 return;
             }
         } catch (Exception e) {
-            log.error("toke出错：{}", e.getMessage());
             //如果token出现了错误认为没有登陆，报401错误
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             if (e.getMessage().indexOf("Allowed clock skew: 0 milliseconds") > 0) {
                 new ObjectMapper().writeValue(response.getOutputStream(), "token过期");
+            }else {
+                log.error("toke出错：{}", e.getMessage());
+                new ObjectMapper().writeValue(response.getOutputStream(), e.getMessage());
             }
             return;
         }
