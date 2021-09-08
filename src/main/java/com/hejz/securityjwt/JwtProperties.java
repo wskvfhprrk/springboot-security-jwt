@@ -13,6 +13,7 @@ public class JwtProperties {
     private String headerKey = "Authorization";
     private String headerPrefix = "Bearer ";
     List<String> noVerifPath;
-    private Integer expirationTime=3600000;
+    private Integer expirationTime=300000;
+    private Integer refreshTokenTime=14400000;
     private String secretKey="secret";
 }

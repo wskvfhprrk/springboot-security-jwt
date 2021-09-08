@@ -44,6 +44,11 @@ public class JwtUtil {
         Map<String, Object> claims = new HashMap<>();
         return createToken(claims, userDetails.getUsername());
     }
+    public String refreshToken(UserDetails userDetails) {
+        return Jwts.builder().setClaims(new HashMap<>()).setSubject(userDetails.getUsername()).setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + jwtProperties.getRefreshTokenTime()))
+                .signWith(SignatureAlgorithm.HS256, jwtProperties.getSecretKey()).compact();
+    }
 
     private String createToken(Map<String, Object> claims, String subject) {
 

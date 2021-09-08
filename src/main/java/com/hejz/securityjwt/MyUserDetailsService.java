@@ -14,11 +14,12 @@ import java.util.List;
 @Service
 public class MyUserDetailsService implements UserDetailsService {
     @Override
-    public UserDetails loadUserByUsername(String s) throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         List<GrantedAuthority> authorities = new ArrayList<GrantedAuthority>();
         //todo 把相应路径权限写入authorities中，在拦截时进行权限路径匹配——mothed+路径 ege:@GET/hello
+        //todo 根据用户名建立权限缓存
         authorities.add(new SimpleGrantedAuthority("@GET/hello"));
         //从数据库中根据username查询到出用户信息和用户的路径授权信息
-        return new User(s, "123456", authorities);
+        return new User(username, "123456", authorities);
     }
 }

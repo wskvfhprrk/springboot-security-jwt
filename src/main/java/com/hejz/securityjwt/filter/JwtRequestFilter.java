@@ -1,10 +1,13 @@
 package com.hejz.securityjwt.filter;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hejz.securityjwt.JwtProperties;
 import com.hejz.securityjwt.JwtUtil;
 import com.hejz.securityjwt.MyUserDetailsService;
 import io.jsonwebtoken.ExpiredJwtException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AuthorizationServiceException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -31,6 +34,7 @@ import java.util.Collection;
  * jwt认证和路径权限匹配过滤器
  */
 @Component
+@Slf4j
 public class JwtRequestFilter extends OncePerRequestFilter {
 
     @Autowired
@@ -60,7 +64,6 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             if (authorization != null && authorization.startsWith(jwtProperties.getHeaderPrefix())) {
                 jwt = authorization.replace(jwtProperties.getHeaderPrefix(), "");
                 username = jwtUtil.extractUsername(jwt);
-
             }
             //如果username不为空值，但上下文会话的身份验证为空时会被security访问请求拒绝——需要把权限添加进上下文会话管理中
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
@@ -81,19 +84,25 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             for (GrantedAuthority g : authorities) {
                 String realPath="@"+request.getMethod()+request.getRequestURI();
                 if(antPathMatcher.match(realPath, g.toString())){
-                    permissionFlag=true;
-                    break;
+                    //如果有路径就过去了
+                    filterChain.doFilter(request,response);
+                    return;
                 }
             }
             if (!permissionFlag) {
+                log.error("用户：{}，没有权限：{}",username,"@"+request.getMethod()+request.getRequestURI());
                 //todo 可以记录到审计日志中
-                AccessDeniedHandlerImpl accessDeniedHandler=new AccessDeniedHandlerImpl();
-                accessDeniedHandler.handle(request,response,new AuthorizationServiceException("无权权限无法访问"));
+                //返回403错误码
+                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                response.setContentType("application/json");
+                new ObjectMapper().writeValue(response.getOutputStream(),"没有权限访问");
                 return;
             }
-        } catch (ExpiredJwtException e) {
-            AccessDeniedHandlerImpl accessDeniedHandler=new AccessDeniedHandlerImpl();
-            accessDeniedHandler.handle(request,response,new AuthorizationServiceException("用户名或密码不正确"));
+        } catch (Exception e) {
+            log.error("toke出错：{}",e.getMessage());
+            //如果token出现了错误认为没有登陆，报401错误
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            new ObjectMapper().writeValue(response.getOutputStream(),"请重新登陆");
             return;
         }
         filterChain.doFilter(request, response);
