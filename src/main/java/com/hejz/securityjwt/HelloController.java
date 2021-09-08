@@ -1,6 +1,7 @@
 package com.hejz.securityjwt;
 
 import com.hejz.securityjwt.dto.LoginDto;
+import io.jsonwebtoken.Claims;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -41,7 +42,6 @@ public class HelloController {
             authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(dto.getUsername(), dto.getPassword()));
         } catch (BadCredentialsException e) {
             //如果认证不能通过报401状态Unauthorized——可以根据业务来重新写
-//            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);m
             resultmap.put("error","用户名密码不正确");
             return ResponseEntity.status(HttpServletResponse.SC_UNAUTHORIZED).body(resultmap);
         }
@@ -52,6 +52,12 @@ public class HelloController {
         resultmap.put("token",jwtToken);
         resultmap.put("refreshToken",refreshToken);
         return ResponseEntity.ok(resultmap);
-
+    }
+    @PostMapping("refresh")
+    public ResponseEntity refreshToken(String token){
+        String username = jwtUtil.extractUsername(token);
+        UserDetails userDetails = myUserDetailsService.loadUserByUsername(username);
+        String refreshToken = jwtUtil.generateToken(userDetails);
+        return ResponseEntity.ok(refreshToken);
     }
 }

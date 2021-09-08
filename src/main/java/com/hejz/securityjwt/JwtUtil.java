@@ -32,7 +32,7 @@ public class JwtUtil {
         return claimsResolver.apply(claims);
     }
 
-    private Claims extractAllClaims(String token) {
+    public Claims extractAllClaims(String token) {
         return Jwts.parser().setSigningKey(jwtProperties.getSecretKey()).parseClaimsJws(token).getBody();
     }
 
@@ -44,6 +44,7 @@ public class JwtUtil {
         Map<String, Object> claims = new HashMap<>();
         return createToken(claims, userDetails.getUsername());
     }
+
     public String refreshToken(UserDetails userDetails) {
         return Jwts.builder().setClaims(new HashMap<>()).setSubject(userDetails.getUsername()).setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + jwtProperties.getRefreshTokenTime()))
@@ -51,7 +52,6 @@ public class JwtUtil {
     }
 
     private String createToken(Map<String, Object> claims, String subject) {
-
         return Jwts.builder().setClaims(claims).setSubject(subject).setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + jwtProperties.getExpirationTime()))
                 .signWith(SignatureAlgorithm.HS256, jwtProperties.getSecretKey()).compact();

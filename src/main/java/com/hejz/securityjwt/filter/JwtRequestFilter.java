@@ -41,7 +41,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
     private MyUserDetailsService myUserDetailsService;
     @Autowired
     private JwtUtil jwtUtil;
-    private AntPathMatcher antPathMatcher=new AntPathMatcher();
+    private AntPathMatcher antPathMatcher = new AntPathMatcher();
     @Autowired
     private JwtProperties jwtProperties;
 
@@ -49,8 +49,8 @@ public class JwtRequestFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         //不需要认证通过的路径
         for (String s : jwtProperties.getNoVerifPath()) {
-            if(antPathMatcher.match(request.getRequestURI(), s)){
-                filterChain.doFilter(request,response);
+            if (antPathMatcher.match(request.getRequestURI(), s)) {
+                filterChain.doFilter(request, response);
                 return;
             }
         }
@@ -75,34 +75,36 @@ public class JwtRequestFilter extends OncePerRequestFilter {
                     usernamePasswordAuthenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);
                 }
-            }else { //如果上下文中存在就从上下文中取出
-                userDetails=(UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            } else { //如果上下文中存在就从上下文中取出
+                userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
             }
             //从用户权限中取出路径进行路径匹配（保证用户在UserDetails进行路径授权一致），如果验证不过则报403——AuthenticationServiceException
             Collection<? extends GrantedAuthority> authorities = userDetails.getAuthorities();
-            boolean permissionFlag=false;
+            boolean permissionFlag = false;
             for (GrantedAuthority g : authorities) {
-                String realPath="@"+request.getMethod()+request.getRequestURI();
-                if(antPathMatcher.match(realPath, g.toString())){
+                String realPath = "@" + request.getMethod() + request.getRequestURI();
+                if (antPathMatcher.match(realPath, g.toString())) {
                     //如果有路径就过去了
-                    filterChain.doFilter(request,response);
+                    filterChain.doFilter(request, response);
                     return;
                 }
             }
             if (!permissionFlag) {
-                log.error("用户：{}，没有权限：{}",username,"@"+request.getMethod()+request.getRequestURI());
+                log.error("用户：{}，没有权限：{}", username, "@" + request.getMethod() + request.getRequestURI());
                 //todo 可以记录到审计日志中
                 //返回403错误码
                 response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                 response.setContentType("application/json");
-                new ObjectMapper().writeValue(response.getOutputStream(),"没有权限访问");
+                new ObjectMapper().writeValue(response.getOutputStream(), "没有权限访问");
                 return;
             }
         } catch (Exception e) {
-            log.error("toke出错：{}",e.getMessage());
+            log.error("toke出错：{}", e.getMessage());
             //如果token出现了错误认为没有登陆，报401错误
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            new ObjectMapper().writeValue(response.getOutputStream(),"请重新登陆");
+            if (e.getMessage().indexOf("Allowed clock skew: 0 milliseconds") > 0) {
+                new ObjectMapper().writeValue(response.getOutputStream(), "token过期");
+            }
             return;
         }
         filterChain.doFilter(request, response);
